@@ -1,7 +1,5 @@
 package pl.edu.agh.iosr.lambda.kafkastorm;
 
-import java.net.MalformedURLException;
-import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
@@ -58,7 +56,7 @@ public class KafkaStormTopology extends UnicastRemoteObject implements KafkaStor
 	private String keySpaceName = "demo";
 
     @Option(name="-table", usage="Storm topology name")
-	private String tableName = "stormcf";
+	private String tableName = "results";
 
     @Option(name="-kafkaspout", usage="Kafka spout name")
 	private String kafkaSpoutName = "kafka-spout";
@@ -67,7 +65,7 @@ public class KafkaStormTopology extends UnicastRemoteObject implements KafkaStor
     private String sqlStatement = "insert into demo.stormcf (word, count) values (?, ?)";
     
     @Option(name="-workers", usage="Number of worker threads")
-	private Integer numWorkers = 3;
+	private Integer numWorkers = 1;
     
     public boolean isRemote() {
 		return remote;
@@ -152,9 +150,8 @@ public class KafkaStormTopology extends UnicastRemoteObject implements KafkaStor
 	 
 	        try {
 	            LocateRegistry.createRegistry(1099).rebind("KafkaStormTopology", kafkaStormTopology); 
-	            log.info("Utworzono rejestr java RMI");
+	            log.info("Utworzono rejestr java RMI i zbindowano serwer");
 //		        Naming.rebind("//localhost/KafkaStormTopology", kafkaStormTopology);
-		        log.info("Zbindowano serwer w rejestrze");
 	        } catch (RemoteException e) {
 	            log.error("Dany rejestr java RMI już istnieje");
 	            e.printStackTrace();

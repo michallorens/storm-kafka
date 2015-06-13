@@ -67,9 +67,5 @@ bin/storm ui
 ```
 Uruchomienie topologii:
 ```
-java -Dstorm.jar=apache-storm-0.9.4/bin/storm -jar storm-kafka-server-1.0-SNAPSHOT-jar-with-dependencies.jar -remote
-```
-lub:
-```
-bin/storm jar ../storm-kafka-server-1.0-SNAPSHOT-jar-with-dependencies.jar pl.edu.agh.iosr.lambda.kafkastorm.KafkaStormTopology [argumenty]
+bin/storm jar ../storm-kafka-server-1.0-SNAPSHOT-jar-with-dependencies.jar pl.edu.agh.iosr.lambda.kafkastorm.KafkaStormTopology -remote
 ```

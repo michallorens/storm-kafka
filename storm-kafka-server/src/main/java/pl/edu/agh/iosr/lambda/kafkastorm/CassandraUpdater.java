@@ -6,7 +6,6 @@ import org.apache.commons.logging.impl.Log4JLogger;
 
 import storm.trident.state.OpaqueValue;
 import storm.trident.tuple.TridentTuple;
-import backtype.storm.tuple.Fields;
 
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
@@ -24,30 +23,30 @@ public class CassandraUpdater implements CqlRowMapper<TridentTuple, OpaqueValue>
 	
 	private String keyspace;
 	private String table;
-	private Fields fields;
-	private Fields groupBy;
+	private Integer id;
     
-    public CassandraUpdater(String keySpace, String table, Fields fields) {
+    public CassandraUpdater(String keySpace, String table, int id) {
     	this.keyspace = keySpace;
     	this.table = table;
-    	this.fields = fields;
-    }
-    
-    public CassandraUpdater(String keySpace, String table, Fields fields, Fields groupBy) {
-    	this.keyspace = keySpace;
-    	this.table = table;
-    	this.fields = fields;
-    	this.groupBy = groupBy;
+    	this.id = id;
     }
 
     @Override
     public Statement map(TridentTuple tuple) {
+    	StringBuilder sb = new StringBuilder();
+
+		sb.append(tuple.get(0));
+		for(int i = 1; i < tuple.getFields().size(); i++) {
+    		sb.append(" | ");
+    		sb.append(tuple.get(i));
+    	}
+
     	Insert statement = QueryBuilder.insertInto(keyspace, table);
-    	
-		for(String field : fields)
-    		statement.value(field, tuple.getValueByField(field));
+    	statement.value("query_id", id);
+    	statement.value("group_by", "");
+    	statement.value("result", sb.toString());
 	    
-	    log.debug("map(): " + statement.getQueryString());
+	    log.info("map(): " + statement.getQueryString());
 		
         return statement;
     }
@@ -56,26 +55,36 @@ public class CassandraUpdater implements CqlRowMapper<TridentTuple, OpaqueValue>
 	public Statement retrieve(TridentTuple tuple) {
 	    Selection selection = QueryBuilder.select();
 	    
-	    for(String field : tuple.getFields())
-	    	selection.column(field);
+//	    for(String field : tuple.getFields())
+//	    	selection.column(field);
 	    
-	    Select statement = selection.from(keyspace, table);
+	    Select statement = selection.from(keyspace, "stormcf");
 	    
-	    for(String group : groupBy)
-	    	statement.where(QueryBuilder.eq(group, tuple.getValueByField(group)));
+//	    for(String group : groupBy)
+//	    	statement.where(QueryBuilder.eq(group, tuple.getValueByField(group)));
 	    
-	    log.debug("retrieve(): " + statement.getQueryString());
+	    log.info("retrieve(): " + statement.getQueryString());
 	    
 	    return statement;
 	}
 
     public Statement map(TridentTuple tuple, OpaqueValue value) {
-    	//TODO ustalic sposob zapisu do bazy
+    	StringBuilder sb = new StringBuilder();
+
+		sb.append(tuple.get(0));
+		for(int i = 1; i < tuple.getFields().size(); i++) {
+    		sb.append(" | ");
+    		sb.append(tuple.get(i));
+    	}
+    	
+    	log.info("map(): #" + id + " " + sb);
     	
     	Insert statement = QueryBuilder.insertInto(keyspace, table);
-    	statement.value(tuple.getFields().get(0), value.getCurr());
+    	statement.value("query_id", id);
+    	statement.value("group_by", sb.toString());
+    	statement.value("result", value.getCurr().toString());
 	    
-	    log.debug("map(): " + statement.getQueryString());
+	    log.info("map(): " + statement.getQueryString());
 		
         return statement;
     }

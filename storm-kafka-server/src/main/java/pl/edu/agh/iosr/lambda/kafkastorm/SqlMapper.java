@@ -3,6 +3,8 @@ package pl.edu.agh.iosr.lambda.kafkastorm;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.impl.Log4JLogger;
 
@@ -15,11 +17,12 @@ import backtype.storm.tuple.Fields;
 import storm.trident.Stream;
 import storm.trident.fluent.GroupedStream;
 import storm.trident.operation.CombinerAggregator;
-import storm.trident.operation.builtin.*;
+import storm.trident.operation.ReducerAggregator;
+import storm.trident.operation.builtin.Count;
 
 public class SqlMapper {
 	private static final List<String> keywords = Arrays.asList("select", "from", "where", "group", "by", "order");
-	private static final List<String> aggregates = Arrays.asList("count", "sum", "avg");
+	private static final List<String> aggregates = Arrays.asList("count", "sum", "avg", "min", "max");
     
     private static final Log4JLogger log = new Log4JLogger(SqlMapper.class.getName());
 	
@@ -32,6 +35,7 @@ public class SqlMapper {
 		for(List<String> query : queries) {
 			log.info("Parsowanie zapytania SQL, utworzenie nowej gałęzi w topologii");
 			splitStream = tridentStream;
+			int id = Integer.parseInt(query.get(0));
 			
 			if(query.contains("where"))
 				splitStream = where(splitStream, sublist(query, "where"));
@@ -39,13 +43,16 @@ public class SqlMapper {
 			if(query.contains("group") && query.contains("by")) {
 				GroupedStream groupedStream = groupBy(splitStream, sublist(query, "by"));
 	
-				//TODO sprawdzić czy można uruchomić wiele funkcji agregujących w jednym zapytaniu
 				if(query.contains("count"))
-					groupedStream = aggregate(groupedStream, query, keySpaceName, tableName, "count", new Count());
+					groupedStream = aggregate(groupedStream, query, keySpaceName, tableName, "count", new Count(), id);
 				if(query.contains("sum"))
-					groupedStream = aggregate(groupedStream, query, keySpaceName, tableName, "sum", new Sum());
+					groupedStream = aggregate(groupedStream, query, keySpaceName, tableName, "sum", new SumAggregator(), id);
+				if(query.contains("min"))
+					groupedStream = aggregate(groupedStream, query, keySpaceName, tableName, "min", new MinAggregator(), id);
+				if(query.contains("max"))
+					groupedStream = aggregate(groupedStream, query, keySpaceName, tableName, "max", new MaxAggregator(), id);
 				if(query.contains("avg"))
-					groupedStream = aggregate(groupedStream, query, keySpaceName, tableName, "avg", new AverageAggregator());
+					groupedStream = chainAggregate(groupedStream, query, keySpaceName, tableName, "avg", new AverageAggregator(), id);
 			} else {
 				log.info("Zapisywanie pól wybranych w wyniku zapytania SELECT do cassandry");
 				
@@ -56,7 +63,7 @@ public class SqlMapper {
 		        Fields fields = new Fields(sublist(query, "select"));
 		
 		        splitStream.partitionPersist(new CassandraCqlStateFactory(ConsistencyLevel.ONE), fields, 
-		        		new CassandraCqlStateUpdater(new CassandraUpdater(keySpaceName, tableName, fields)));
+		        		new CassandraCqlStateUpdater(new CassandraUpdater(keySpaceName, tableName, id)));
 			}
 		}
 	}
@@ -65,9 +72,13 @@ public class SqlMapper {
 		List<List<String>> result = new ArrayList<List<String>>();
 		List<String> queries = new ArrayList<String>(Arrays.asList(sql.split(";")));
 		for(String str : queries) {
+			log.info("parsowanie zapytania: " + str);
 			if(str.equals(""))
 				continue;
-			List<String> query = new ArrayList<String>(Arrays.asList(str.replaceAll("[,()]+", " ").split(" ")));
+			List<String> query = new ArrayList<String>();
+			Matcher m = Pattern.compile("([^\"]\\S*|\".+?\")\\s*").matcher(str.replaceAll("[,()]+", " "));
+			while (m.find())
+			    query.add(m.group(1));
 			while(query.contains(""))
 				query.remove("");
 			result.add(query);
@@ -124,7 +135,7 @@ public class SqlMapper {
 		return tridentStream.groupBy(new Fields(groupBy));
 	}
 	
-	private static GroupedStream aggregate(GroupedStream groupedStream, List<String> query, String keySpaceName, String tableName, String aggregate, @SuppressWarnings("rawtypes") CombinerAggregator aggregator) {
+	private static GroupedStream aggregate(GroupedStream groupedStream, List<String> query, String keySpaceName, String tableName, String aggregate, @SuppressWarnings("rawtypes") CombinerAggregator aggregator, int id) {
 		log.info("Uruchomienie funkcji agregującej " + aggregate + "() na podzielonym strumieniu");
 		
 		Fields aggregateField = new Fields(aggregate + "_" + query.get(query.indexOf(aggregate) + 1));
@@ -139,9 +150,36 @@ public class SqlMapper {
 		Fields fields = new Fields(sublist(query, "select"));
 		
 		groupedStream.persistentAggregate(CassandraCqlMapState.opaque(
-				new CassandraUpdater(keySpaceName, tableName, fields, new Fields(sublist(query, "by")))), 
+				new CassandraUpdater(keySpaceName, tableName, id)), 
 				fields,	aggregator, aggregateField);
 
 		return groupedStream;
 	}
+	
+	private static GroupedStream chainAggregate(GroupedStream groupedStream, List<String> query, String keySpaceName, String tableName, String aggregate, @SuppressWarnings("rawtypes") ReducerAggregator aggregator, int id) {
+		log.info("Uruchomienie funkcji agregującej " + aggregate + "() na podzielonym strumieniu");
+		
+		Fields aggregateField = new Fields(aggregate + "_" + query.get(query.indexOf(aggregate) + 1));
+		
+//		if(Arrays.asList(sublist(query, "select")).contains("*")) {
+//			
+//			groupedStream.persistentAggregate(CassandraCqlMapState.opaque(
+//					new CassandraUpdater(keySpaceName, tableName, new Fields(StockFieldsDescriptor.stockFields), new Fields(sublist(query, "by")))), 
+//					aggregator, aggregateField);
+//		} else {
+
+		query = removeAggregates(query);
+		Fields fields = new Fields(sublist(query, "select"));
+		
+		groupedStream.chainedAgg()
+			.partitionAggregate(fields, new Count(), new Fields("count"))
+			.partitionAggregate(fields, new SumAggregator(), new Fields("sum"))
+			.chainEnd()
+			.persistentAggregate(CassandraCqlMapState.opaque(
+				new CassandraUpdater(keySpaceName, tableName, id)), 
+				new Fields("count", "sum"),	aggregator, aggregateField);
+
+		return groupedStream;
+	}
+	
 }

@@ -38,7 +38,7 @@ public class AppTest
      */
     public void testApp()
     {
-    	String sql = "select a, avg(b) where c > \"d\" group by a";
+    	String sql = "select a, avg(b) where c > \"ala ma kota\" group by a";
     	List<List<String>> list = new ArrayList<List<String>>();
     	list.addAll(SqlMapper.processSqlString(sql));
     	
@@ -47,7 +47,7 @@ public class AppTest
     		assertEquals(result1[i], SqlMapper.sublist(list.get(0), "select")[i]);
 		assertEquals(result1.length, SqlMapper.sublist(list.get(0), "select").length);
 
-    	String[] result2 = { "c", ">", "\"d\"" };
+    	String[] result2 = { "c", ">", "\"ala ma kota\"" };
     	for(int i = 0; i < result2.length; i++)
     		assertEquals(result2[i], SqlMapper.sublist(list.get(0), "where")[i]);
 		assertEquals(result2.length, SqlMapper.sublist(list.get(0), "where").length);

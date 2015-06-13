@@ -18,9 +18,14 @@ public class WhereFilter extends BaseFilter {
 	private String where = "";
 	
 	public WhereFilter(String[] array) {
-		for(String str : array)
-			//TODO optymalizacja
-			this.where += str + " ";
+		StringBuilder sb = new StringBuilder(this.where);
+		
+		for(String str : array) {
+			sb.append(str);
+			sb.append(" ");
+		}
+		
+		this.where = sb.toString();
 	}
 
 	@Override

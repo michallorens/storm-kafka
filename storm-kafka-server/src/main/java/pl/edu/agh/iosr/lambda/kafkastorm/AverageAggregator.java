@@ -1,45 +1,30 @@
 package pl.edu.agh.iosr.lambda.kafkastorm;
 
-import storm.trident.operation.CombinerAggregator;
+import org.apache.commons.logging.impl.Log4JLogger;
+
+import storm.trident.operation.ReducerAggregator;
 import storm.trident.tuple.TridentTuple;
 
-public class AverageAggregator implements CombinerAggregator<Number> {
+public class AverageAggregator implements ReducerAggregator<Double> {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	
-	int count = 0;
-	double sum = 0;
 
+    private static final Log4JLogger log = new Log4JLogger(AverageAggregator.class.getName());
+	
 	@Override
-	public Double init(final TridentTuple tuple) {
-	    this.count++;
-	    if (!(tuple.getValue(0) instanceof Double)) {
-	
-	        double d = ((Number) tuple.getValue(0)).doubleValue();
-	
-	        this.sum += d;
-	
-	        return d;
-	    }
-	
-	    this.sum += (Double) tuple.getValue(0);
-	    return (Double) tuple.getValue(0);
-	
+	public Double init() {
+		return 0.;
 	}
 
 	@Override
-	public Double combine(final Number val1, final Number val2) {
-	    return this.sum / this.count;
-	
-	}
-	
-	@Override
-	public Double zero() {
-	    this.sum = 0;
-	    this.count = 0;
-	    return 0D;
+	public Double reduce(Double curr, TridentTuple tuple) {
+		log.info("avg(): " + curr + ", " + tuple.getValueByField("sum") + ", " + tuple.getValueByField("count"));
+		
+		return (curr * (Double.parseDouble((String) tuple.getValueByField("count")) - 1) +
+				Double.parseDouble((String) tuple.getValueByField("sum"))) /
+				Double.parseDouble((String) tuple.getValueByField("count"));
 	}
 }

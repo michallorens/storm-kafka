@@ -20,16 +20,10 @@ public class DeserializationFunction implements Function {
 
 	@SuppressWarnings("rawtypes")
 	@Override
-	public void prepare(Map conf, TridentOperationContext context) {
-		// TODO Auto-generated method stub
-
-	}
+	public void prepare(Map conf, TridentOperationContext context) { }
 
 	@Override
-	public void cleanup() {
-		// TODO Auto-generated method stub
-
-	}
+	public void cleanup() {	}
 
 	@Override
 	public void execute(TridentTuple tuple, TridentCollector collector) {
@@ -44,9 +38,7 @@ public class DeserializationFunction implements Function {
             valuesList.add(data.get(field));
         }
 
-        //to niby jest Object, ale w praktyce są tam stringi, po prostu emmiter nie przyjął
         collector.emit(valuesList);
-
 	}
 
 }
