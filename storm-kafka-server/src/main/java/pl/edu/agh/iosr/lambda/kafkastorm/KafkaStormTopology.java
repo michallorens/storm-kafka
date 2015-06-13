@@ -151,16 +151,16 @@ public class KafkaStormTopology extends UnicastRemoteObject implements KafkaStor
 	        log.info("Uruchmianie serwera RMI");
 	 
 	        try {
-	            LocateRegistry.createRegistry(1099); 
+	            LocateRegistry.createRegistry(1099).rebind("KafkaStormTopology", kafkaStormTopology); 
 	            log.info("Utworzono rejestr java RMI");
-		        Naming.rebind("//localhost/KafkaStormTopology", kafkaStormTopology);
+//		        Naming.rebind("//localhost/KafkaStormTopology", kafkaStormTopology);
 		        log.info("Zbindowano serwer w rejestrze");
 	        } catch (RemoteException e) {
 	            log.error("Dany rejestr java RMI już istnieje");
 	            e.printStackTrace();
-	        } catch (MalformedURLException e) {
-	        	log.error("Błędny URL");
-				e.printStackTrace();
+//	        } catch (MalformedURLException e) {
+//	        	log.error("Błędny URL");
+//				e.printStackTrace();
 			}
 	    } else {
 			kafkaStormTopology.configureTopology();

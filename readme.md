@@ -32,22 +32,23 @@ public Statement map(TridentTuple tuple) {
 <h3>Konfiguracja operacji na Cassandrze</h3>
 Okreslenie odpowiednich przestrzeni, tabeli, kolumn odbywa sie poprzez argumenty wywolania:
 ```
--cql VAL        : CQL statement/query (default: insert into demo.stormcf
+ -cqlhost VAL    : Cassandra host address (default: localhost)
+ -kafkaspout VAL : Kafka spout name (default: kafka-spout)
+ -keySpace VAL   : Cassandra keyspace name (default: demo)
+ -remote         : Run as RMI server (default: false)
+ -sql VAL        : SQL statement/query (default: insert into demo.stormcf
                    (word, count) values (?, ?))
--cqlhost VAL    : Cassandra host address (default: localhost)
--fields VAL     : Comma separated list of tuple fields (default: word,count)
--kafkaspout VAL : Kafka spout name (default: kafka-spout)
--keySpace VAL   : Cassandra keyspace name (default: demo)
--topic VAL      : Kafka topic name (default: sentence-spout)
--topology VAL   : Storm topology name (default: test-topology)
--workers N      : Number of worker threads (default: 3)
--zkhost VAL     : ZooKeeper host address (default: localhost)
+ -table VAL      : Storm topology name (default: stormcf)
+ -topic VAL      : Kafka topic name (default: tuple)
+ -topology VAL   : Storm topology name (default: test-topology)
+ -workers N      : Number of worker threads (default: 3)
+ -zkhost VAL     : ZooKeeper host address (default: localhost)
 ```
 <h2>Uruchamianie aplikacji</h2>
 <h3>Uruchomienie systemu kolejkowego</h3>
 ```
 bin/zookeeper-server-start.sh config/zookeeper.properties
-bin/kafka-server-start.sh config/server1.properties
+bin/kafka-server-start.sh config/server0.properties
 ```
 Tworzenie nowego watku:
 ```
@@ -66,5 +67,9 @@ bin/storm ui
 ```
 Uruchomienie topologii:
 ```
-bin/storm jar ../kafkastorm-0.0.1-SNAPSHOT-jar-with-dependencies.jar lambda.kafkastorm.KafkaStormTopology [argumenty]
+java -Dstorm.jar=apache-storm-0.9.4/bin/storm -jar storm-kafka-server-1.0-SNAPSHOT-jar-with-dependencies.jar -remote
+```
+lub:
+```
+bin/storm jar ../storm-kafka-server-1.0-SNAPSHOT-jar-with-dependencies.jar pl.edu.agh.iosr.lambda.kafkastorm.KafkaStormTopology [argumenty]
 ```
