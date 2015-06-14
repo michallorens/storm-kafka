@@ -1,6 +1,6 @@
 <h1>storm-kafka</h1>
 <h2>Integracja z systemem kolejkowym Apache Kafka</h2>
-Storm skonfigurowany jest tak, aby nasluchiwal przychodzacych krotek `TridentTuple` z zadanego watku systemu kolejkowego - `topicName`. Krotki te tworza nastepnie strumien przekazywany do kolejnego elementu w topologii.
+Storm skonfigurowany jest tak, aby nasłuchiwał przychodzących krotek `TridentTuple` z zadanego wątku systemu kolejkowego - `topicName`. Krotki te tworzą nastepnie strumień przekazywany do kolejnego elementu w topologii.
 ```java
 ZkHosts zkHosts = new ZkHosts("localhost");
 TridentKafkaConfig spoutConfig = new TridentKafkaConfig(zkHosts, topicName);
@@ -10,18 +10,18 @@ OpaqueTridentKafkaSpout kafkaSpout = new OpaqueTridentKafkaSpout(spoutConfig);
 Stream inputStream = topology.newStream(kafkaSpoutName, spout);
 ```
 <h2>Integracja z Cassandra</h2>
-Konfiguracja polaczenia z Cassandra:
+Konfiguracja połączenia z Cassandra:
 ```java
 final Config configuration = new Config();
 configuration.put(MapConfiguredCqlClientFactory.TRIDENT_CASSANDRA_CQL_HOSTS, "localhost");
 ```
-Przekazanie przychodzacych krotek do Cassandry:
+Przekazanie przychodzących krotek do Cassandry:
 ```java
 UpdateMapper mapper = new UpdateMapper(keySpaceName, tableName, idColumnName, valColumnName);
 inputStream.partitionPersist(new CassandraCqlStateFactory(ConsistencyLevel.ONE), new Fields(idColumnName, valColumnName), new CassandraCqlStateUpdater(mapper));
 inputStream.each(new Fields(idColumnName, valColumnName), new Debug());
 ```
-Tworzymy klase `UpdateMapper` odpowiedzialna za mapowanie krotek na rekordy w Cassandrze i rejestrujemy ja jako `CassandraCqlStateUpdater` na strumieniu z systemu kolejkowego. `UpdateMapper` sluzy do wykonywania okreslonego przez nas zapytania CQL:
+Tworzymy klasę `UpdateMapper` odpowiedzialną za mapowanie krotek na rekordy w Cassandrze i rejestrujemy ja jako `CassandraCqlStateUpdater` na strumieniu z systemu kolejkowego. `UpdateMapper` służy do wykonywania określonego przez nas zapytania CQL:
 ```java
 public Statement map(TridentTuple tuple) {
 	SimpleStatement statement = new SimpleStatement(cqlStatement, (Object[]) fields);
@@ -30,7 +30,7 @@ public Statement map(TridentTuple tuple) {
 }
 ```
 <h3>Konfiguracja operacji na Cassandrze</h3>
-Okreslenie odpowiednich przestrzeni, tabeli, kolumn odbywa sie poprzez argumenty wywolania:
+Określenie odpowiednich przestrzeni, tabeli i kolumn odbywa się poprzez argumenty wywołania:
 ```
  -cqlhost VAL    : Cassandra host address (default: localhost)
  -kafkaspout VAL : Kafka spout name (default: kafka-spout)
@@ -50,11 +50,11 @@ Okreslenie odpowiednich przestrzeni, tabeli, kolumn odbywa sie poprzez argumenty
 bin/zookeeper-server-start.sh config/zookeeper.properties
 bin/kafka-server-start.sh config/server0.properties
 ```
-Tworzenie nowego watku:
+Tworzenie nowego wątku:
 ```
 bin/kafka-topics.sh --zookeeper localhost:2181 --create --topic sentence-spout --partitions 3 --replication-factor 1
 ```
-Producent i konsument systemu kolejkowego w razie koniecznosci testow:
+Producent i konsument systemu kolejkowego w razie konieczności testów:
 ```
 bin/kafka-console-producer.sh --broker-list localhost:9092 --sync --topic sentence-spout
 bin/kafka-console-consumer.sh --zookeeper localhost:2181 --topic sentence-spout --from-beginning
@@ -69,3 +69,4 @@ Uruchomienie topologii:
 ```
 bin/storm jar ../storm-kafka-server-1.0-SNAPSHOT-jar-with-dependencies.jar pl.edu.agh.iosr.lambda.kafkastorm.KafkaStormTopology -remote
 ```
+Wszystkie pliki konfiguracyjne konieczne do uruchomienia Storma, Kafki i Zookeepera załączone są w katalogu `config/`.
