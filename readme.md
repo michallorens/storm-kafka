@@ -30,7 +30,7 @@ public Statement map(TridentTuple tuple) {
 }
 ```
 <h3>Konfiguracja operacji na Cassandrze</h3>
-Okreœlenie odpowiednich przestrzeni, tabeli, kolumn odbywa siê poprzez argumenty wywo³ania:
+Okreœlenie odpowiednich przestrzeni, tabeli i kolumn odbywa siê poprzez argumenty wywo³ania:
 ```
  -cqlhost VAL    : Cassandra host address (default: localhost)
  -kafkaspout VAL : Kafka spout name (default: kafka-spout)
@@ -69,3 +69,4 @@ Uruchomienie topologii:
 ```
 bin/storm jar ../storm-kafka-server-1.0-SNAPSHOT-jar-with-dependencies.jar pl.edu.agh.iosr.lambda.kafkastorm.KafkaStormTopology -remote
 ```
+Wszystkie pliki konfiguracyjne konieczne do uruchomienia Storma, Kafki i Zookeepera za³¹czone s¹ w katalogu `config/`.
